@@ -1,12 +1,14 @@
 """
-WAHA Notifier module for sending WhatsApp notifications
+Enhanced WAHA Notifier module for sending WhatsApp notifications
 Handles real-time notifications to admin about document processing results
+with checklist-based message templates and enhanced formatting
 """
 
 import requests
 import logging
-from typing import Dict, Optional, Any
-from datetime import datetime
+from typing import Dict, Optional, Any, List
+from datetime import datetime, timedelta
+import time
 
 from app.config import Config
 
@@ -25,6 +27,9 @@ class WAHANotifier:
         self.api_key = Config.WAHA_API_KEY
         self.admin_number = Config.ADMIN_WHATSAPP_NUMBER
         self.timeout = 30
+        self.templates = Config.WHATSAPP_TEMPLATES
+        self.notification_settings = Config.NOTIFICATION_SETTINGS
+        self._last_notifications = {}  # Track last notifications to avoid spam
 
     def send_upload_notification(self, company_name: str, job_type: str,
                                 file_name: str, completeness_result: Dict[str, Any]) -> bool:
@@ -288,8 +293,379 @@ _Sistem Otomasi Legal Dokumen v1.0_"""
 
         return result
 
+    def send_checklist_notification(self, company_name: str, checklist_result: Dict,
+                                   recipient_number: str = None) -> bool:
+        """
+        Send checklist evaluation result notification using template system
 
-class NotificationManager:
+        Args:
+            company_name: Name of the company
+            checklist_result: Checklist evaluation result from ChecklistManager
+            recipient_number: Optional recipient number (defaults to admin)
+
+        Returns:
+            True if notification sent successfully, False otherwise
+        """
+        try:
+            target_number = recipient_number or self.admin_number
+
+            # Check rate limiting
+            if self._is_rate_limited(f"checklist_{company_name}"):
+                logger.info(f"Checklist notification for {company_name} rate limited")
+                return False
+
+            # Determine template based on completion status
+            if checklist_result.get("status") == "complete":
+                template_name = "checklist_complete"
+            else:
+                template_name = "checklist_incomplete"
+
+            # Format message using template
+            message = self._format_template_message(template_name, company_name, checklist_result)
+
+            success = self._send_message_to_number(message, target_number)
+
+            if success:
+                self._update_notification_timestamp(f"checklist_{company_name}")
+                logger.info(f"Checklist notification sent for {company_name}")
+
+            return success
+
+        except Exception as e:
+            logger.error(f"Failed to send checklist notification: {str(e)}")
+            return False
+
+    def send_processing_started_notification(self, company_name: str,
+                                           recipient_number: str = None) -> bool:
+        """
+        Send notification when document processing starts
+
+        Args:
+            company_name: Name of the company
+            recipient_number: Optional recipient number (defaults to admin)
+
+        Returns:
+            True if notification sent successfully, False otherwise
+        """
+        try:
+            target_number = recipient_number or self.admin_number
+
+            # Check rate limiting
+            if self._is_rate_limited(f"processing_{company_name}"):
+                return False
+
+            message = self.templates["processing_started"].format(company_name=company_name)
+
+            success = self._send_message_to_number(message, target_number)
+
+            if success:
+                self._update_notification_timestamp(f"processing_{company_name}")
+
+            return success
+
+        except Exception as e:
+            logger.error(f"Failed to send processing started notification: {str(e)}")
+            return False
+
+    def send_processing_error_notification(self, company_name: str, error_message: str,
+                                         recipient_number: str = None) -> bool:
+        """
+        Send notification when processing fails
+
+        Args:
+            company_name: Name of the company
+            error_message: Error description
+            recipient_number: Optional recipient number (defaults to admin)
+
+        Returns:
+            True if notification sent successfully, False otherwise
+        """
+        try:
+            target_number = recipient_number or self.admin_number
+
+            message = self.templates["processing_error"].format(
+                company_name=company_name,
+                error_message=error_message
+            )
+
+            return self._send_message_to_number(message, target_number)
+
+        except Exception as e:
+            logger.error(f"Failed to send processing error notification: {str(e)}")
+            return False
+
+    def send_batch_notifications(self, notifications: List[Dict]) -> Dict[str, bool]:
+        """
+        Send multiple notifications in batch
+
+        Args:
+            notifications: List of notification dictionaries with keys:
+                - type: 'checklist', 'processing_started', 'processing_error'
+                - company_name: str
+                - data: Dict (additional data for the notification)
+                - recipient_number: str (optional)
+
+        Returns:
+            Dict with notification results
+        """
+        results = {}
+
+        for i, notification in enumerate(notifications):
+            try:
+                notif_type = notification.get('type')
+                company_name = notification.get('company_name')
+                data = notification.get('data', {})
+                recipient_number = notification.get('recipient_number')
+
+                if notif_type == 'checklist':
+                    success = self.send_checklist_notification(company_name, data, recipient_number)
+                elif notif_type == 'processing_started':
+                    success = self.send_processing_started_notification(company_name, recipient_number)
+                elif notif_type == 'processing_error':
+                    error_msg = data.get('error_message', 'Unknown error')
+                    success = self.send_processing_error_notification(company_name, error_msg, recipient_number)
+                else:
+                    success = False
+                    logger.warning(f"Unknown notification type: {notif_type}")
+
+                results[f"notification_{i}"] = success
+
+                # Add delay between notifications to avoid rate limiting
+                if i < len(notifications) - 1:
+                    time.sleep(1)
+
+            except Exception as e:
+                logger.error(f"Error sending batch notification {i}: {str(e)}")
+                results[f"notification_{i}"] = False
+
+        return results
+
+    def _send_message_to_number(self, message: str, phone_number: str) -> bool:
+        """
+        Send message to specific phone number
+
+        Args:
+            message: Message content
+            phone_number: Target phone number
+
+        Returns:
+            True if sent successfully, False otherwise
+        """
+        try:
+            url = f"{self.api_url}/api/sendText"
+            headers = {
+                'x-api-key': self.api_key,
+                'Content-Type': 'application/json'
+            }
+
+            payload = {
+                'chatId': f"{phone_number}@c.us",
+                'text': message,
+                'session': 'default'
+            }
+
+            response = requests.post(
+                url,
+                json=payload,
+                headers=headers,
+                timeout=self.timeout
+            )
+
+            response.raise_for_status()
+            logger.info(f"WhatsApp message sent to {phone_number}")
+            return True
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"WAHA API request failed: {str(e)}")
+            return False
+        except Exception as e:
+            logger.error(f"Unexpected error sending WhatsApp message: {str(e)}")
+            return False
+
+    def _format_template_message(self, template_name: str, company_name: str,
+                               checklist_result: Dict) -> str:
+        """
+        Format message using template system
+
+        Args:
+            template_name: Name of the template to use
+            company_name: Name of the company
+            checklist_result: Checklist evaluation result
+
+        Returns:
+            Formatted message string
+        """
+        if template_name not in self.templates:
+            logger.warning(f"Template {template_name} not found, using default format")
+            return self._format_default_checklist_message(company_name, checklist_result)
+
+        template = self.templates[template_name]
+
+        # Extract required data for template
+        completion_percentage = checklist_result.get("completion_percentage", 0)
+        found_docs = checklist_result.get("found_documents", [])
+        missing_docs = checklist_result.get("missing_documents", [])
+
+        # Format available documents
+        available_docs_text = ""
+        if found_docs:
+            available_docs_text = "\n".join([
+                f"• {doc['required']}" for doc in found_docs[:5]  # Limit to 5 items
+            ])
+            if len(found_docs) > 5:
+                available_docs_text += f"\n• ... dan {len(found_docs) - 5} dokumen lainnya"
+
+        # Format missing documents
+        missing_docs_text = ""
+        if missing_docs:
+            missing_docs_text = "\n".join([
+                f"• {doc}" for doc in missing_docs[:5]  # Limit to 5 items
+            ])
+            if len(missing_docs) > 5:
+                missing_docs_text += f"\n• ... dan {len(missing_docs) - 5} dokumen lainnya"
+
+        # Fill template
+        try:
+            message = template.format(
+                company_name=company_name,
+                completion_percentage=completion_percentage,
+                available_docs=available_docs_text,
+                missing_docs=missing_docs_text,
+                total_found=len(found_docs),
+                total_missing=len(missing_docs),
+                status=checklist_result.get("status", "unknown")
+            )
+
+            # Add footer if not already present
+            if "_Sistem Otomasi Legal Dokumen_" not in message:
+                message += "\n\n_Sistem Otomasi Legal Dokumen_"
+
+            return message
+
+        except KeyError as e:
+            logger.error(f"Template formatting error: missing key {str(e)}")
+            return self._format_default_checklist_message(company_name, checklist_result)
+
+    def _format_default_checklist_message(self, company_name: str, checklist_result: Dict) -> str:
+        """
+        Default message formatting if template fails
+
+        Args:
+            company_name: Name of the company
+            checklist_result: Checklist evaluation result
+
+        Returns:
+            Formatted message string
+        """
+        completion_percentage = checklist_result.get("completion_percentage", 0)
+        status = checklist_result.get("status", "unknown")
+        found_count = checklist_result.get("total_found", 0)
+        total_required = checklist_result.get("total_required", 0)
+
+        status_emojis = {
+            "complete": "🎉",
+            "nearly_complete": "📋",
+            "partial": "⚠️",
+            "incomplete": "❌"
+        }
+
+        emoji = status_emojis.get(status, "📋")
+
+        message = f"""{emoji} *Hasil Pengecekan Dokumen PT {company_name}*
+
+📊 *Status:* {status.replace('_', ' ').title()}
+📈 *Kelengkapan:* {completion_percentage}% ({found_count}/{total_required} dokumen)
+
+📅 *Waktu:* {datetime.now().strftime('%d %B %Y %H:%M')}
+
+_Sistem Otomasi Legal Dokumen_"""
+
+        return message
+
+    def _is_rate_limited(self, notification_key: str) -> bool:
+        """
+        Check if notification should be rate limited
+
+        Args:
+            notification_key: Unique key for the notification type
+
+        Returns:
+            True if rate limited, False otherwise
+        """
+        if not self.notification_settings.get("auto_send_checklist_results", True):
+            return True
+
+        delay_minutes = self.notification_settings.get("notification_delay_minutes", 1)
+
+        if notification_key in self._last_notifications:
+            last_time = self._last_notifications[notification_key]
+            time_diff = datetime.now() - last_time
+
+            if time_diff < timedelta(minutes=delay_minutes):
+                return True
+
+        return False
+
+    def _update_notification_timestamp(self, notification_key: str):
+        """
+        Update the timestamp for the last sent notification
+
+        Args:
+            notification_key: Unique key for the notification type
+        """
+        self._last_notifications[notification_key] = datetime.now()
+
+    def retry_failed_notifications(self, failed_notifications: List[Dict],
+                                  max_retries: int = None) -> Dict[str, bool]:
+        """
+        Retry failed notifications with exponential backoff
+
+        Args:
+            failed_notifications: List of failed notification dictionaries
+            max_retries: Maximum number of retries (defaults to config)
+
+        Returns:
+            Dict with retry results
+        """
+        if max_retries is None:
+            max_retries = self.notification_settings.get("max_retries", 3)
+
+        results = {}
+
+        for i, notification in enumerate(failed_notifications):
+            success = False
+
+            for attempt in range(max_retries):
+                try:
+                    # Exponential backoff: wait 2^attempt seconds
+                    if attempt > 0:
+                        time.sleep(2 ** attempt)
+
+                    notif_type = notification.get('type')
+                    company_name = notification.get('company_name')
+                    data = notification.get('data', {})
+                    recipient_number = notification.get('recipient_number')
+
+                    if notif_type == 'checklist':
+                        success = self.send_checklist_notification(company_name, data, recipient_number)
+                    elif notif_type == 'processing_started':
+                        success = self.send_processing_started_notification(company_name, recipient_number)
+                    elif notif_type == 'processing_error':
+                        error_msg = data.get('error_message', 'Unknown error')
+                        success = self.send_processing_error_notification(company_name, error_msg, recipient_number)
+
+                    if success:
+                        break
+
+                except Exception as e:
+                    logger.error(f"Retry {attempt + 1} failed for notification {i}: {str(e)}")
+
+            results[f"retry_notification_{i}"] = success
+
+        return results
+
+
+class EnhancedNotificationManager:
     """
     High-level notification manager that orchestrates different types of notifications
     """
@@ -297,6 +673,26 @@ class NotificationManager:
     def __init__(self):
         """Initialize notification manager"""
         self.waha_notifier = WAHANotifier()
+
+    def test_all_notifications(self) -> Dict[str, bool]:
+        """
+        Test all notification systems
+
+        Returns:
+            Dict with test results for each notification type
+        """
+        results = {}
+
+        # Test WAHA connection
+        results['waha_connection'] = self.waha_notifier.test_connection()
+
+        # Test WAHA message
+        if results['waha_connection']:
+            results['waha_message'] = self.waha_notifier.send_test_message()
+        else:
+            results['waha_message'] = False
+
+        return results
 
     def notify_file_processed(self, company_name: str, job_type: str,
                             file_name: str, completeness_result: Dict[str, Any]) -> bool:
@@ -362,26 +758,6 @@ class NotificationManager:
             True if notification sent successfully, False otherwise
         """
         return self.waha_notifier.send_error_notification(error_message, context)
-
-    def test_all_notifications(self) -> Dict[str, bool]:
-        """
-        Test all notification systems
-
-        Returns:
-            Dict with test results for each notification type
-        """
-        results = {}
-
-        # Test WAHA connection
-        results['waha_connection'] = self.waha_notifier.test_connection()
-
-        # Test WAHA message
-        if results['waha_connection']:
-            results['waha_message'] = self.waha_notifier.send_test_message()
-        else:
-            results['waha_message'] = False
-
-        return results
 
 
 # Example usage and testing

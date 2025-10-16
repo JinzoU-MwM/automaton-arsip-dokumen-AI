@@ -16,8 +16,8 @@ sys.path.append(str(Path(__file__).parent))
 from app.config import Config
 from app.watcher import LegalDocumentWatcher
 from app.ai_parser import AIParser
-from app.drive_manager_oauth import GoogleDriveManagerOAuth as GoogleDriveManager, DocumentCompletenessChecker
-from app.notifier import NotificationManager
+from app.drive_manager_oauth import GoogleDriveManagerOAuth as GoogleDriveManager
+from app.notifier import EnhancedNotificationManager as NotificationManager
 
 # Configure logging
 def setup_logging():
@@ -78,8 +78,8 @@ class LegalDocumentAutomation:
                 return False
             logger.info("✅ Google Drive manager initialized")
 
-            # Initialize document completeness checker
-            self.completeness_checker = DocumentCompletenessChecker(self.drive_manager)
+            # Initialize document completeness checker (using drive manager directly)
+            self.completeness_checker = self.drive_manager
             logger.info("✅ Document completeness checker initialized")
 
             # Initialize notification manager
@@ -284,8 +284,21 @@ class LegalDocumentAutomation:
                 elif choice == '3':
                     company_name = input("Enter company name: ").strip()
                     if company_name:
-                        result = self.completeness_checker.check_completeness(company_name)
-                        report = self.completeness_checker.generate_completeness_report(company_name)
+                        result = self.completeness_checker.check_document_completeness(company_name)
+                        present_docs = result.get('present', [])
+                        missing_docs = result.get('missing', [])
+
+                        report = f"""
+Document Completeness Report for {company_name}
+
+✅ Available Documents ({len(present_docs)}):
+{chr(10).join(f"• {doc}" for doc in present_docs)}
+
+❌ Missing Documents ({len(missing_docs)}):
+{chr(10).join(f"• {doc}" for doc in missing_docs)}
+
+Status: {len(present_docs)}/{len(present_docs) + len(missing_docs)} documents found
+                        """
                         print(f"\n{report}")
 
                 elif choice == '4':

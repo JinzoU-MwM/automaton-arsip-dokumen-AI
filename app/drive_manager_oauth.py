@@ -381,6 +381,53 @@ class GoogleDriveManagerOAuth:
             logger.error(f"Failed to get user info: {str(e)}")
             return {}
 
+    def get_company_files(self, company_name: str) -> List[Dict]:
+        """
+        Get all files for a company across all category folders
+
+        Args:
+            company_name: Name of the company
+
+        Returns:
+            List of file dictionaries with name, id, and folder info
+        """
+        try:
+            # Get company folder ID
+            company_folder_id = self._find_folder(company_name, self.root_folder_id)
+            if not company_folder_id:
+                logger.warning(f"Company folder not found: {company_name}")
+                return []
+
+            # Get all files in company folder and subfolders
+            query = f"'{company_folder_id}' in parents and trashed=false"
+
+            response = self.service.files().list(
+                q=query,
+                spaces='drive',
+                fields='files(id, name, parents, mimeType)'
+            ).execute()
+
+            files = response.get('files', [])
+            company_files = []
+
+            for file in files:
+                # Skip folders, only include files
+                if file.get('mimeType') == 'application/vnd.google-apps.folder':
+                    continue
+
+                company_files.append({
+                    'id': file.get('id'),
+                    'name': file.get('name'),
+                    'parents': file.get('parents', []),
+                    'mimeType': file.get('mimeType', 'unknown')
+                })
+
+            logger.info(f"Found {len(company_files)} files for company: {company_name}")
+            return company_files
+
+        except Exception as e:
+            logger.error(f"Error getting company files for {company_name}: {str(e)}")
+            return []
 
 # Test the OAuth authentication
 if __name__ == "__main__":

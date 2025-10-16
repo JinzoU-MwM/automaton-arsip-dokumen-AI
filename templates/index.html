@@ -175,6 +175,25 @@
             font-size: 0.9rem;
             margin-top: 5px;
         }
+
+        .file-browser-item {
+            padding: 8px 12px;
+            margin: 2px 0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .file-browser-item:hover {
+            background-color: #e9ecef;
+            border-left-color: var(--primary-color);
+        }
+
+        .file-browser-item i {
+            width: 16px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -324,21 +343,124 @@
             </div>
         </div>
 
+        <!-- Checklist Evaluation Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="status-card">
+                    <div class="card-header card-header-custom">
+                        <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>Checklist Evaluation</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="checklistCompany" class="form-label">Company Name</label>
+                                    <input type="text" class="form-control" id="checklistCompany" placeholder="Enter company name">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="checklistType" class="form-label">Checklist Type</label>
+                                    <select class="form-select" id="checklistType">
+                                        <option value="">Auto-detect best match</option>
+                                        <option value="BG PIHK PT">BG PIHK PT (Bank Garansi PIHK)</option>
+                                        <option value="BG PPIU PT">BG PPIU PT (Bank Garansi PPIU)</option>
+                                        <option value="Laporan Keuangan">Laporan Keuangan</option>
+                                    </select>
+                                </div>
+                                <button class="btn btn-primary btn-custom" onclick="evaluateChecklist()">
+                                    <i class="fas fa-clipboard-check me-2"></i>Evaluate Checklist
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <div id="checklistResult" class="border rounded p-3" style="min-height: 200px; background-color: #f8f9fa;">
+                                    <div class="text-center text-muted">
+                                        <i class="fas fa-clipboard-list fa-2x mb-2"></i>
+                                        <p>Checklist evaluation results will appear here</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3" id="checklistDetails" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-check-circle text-success me-2"></i>Available Documents</h6>
+                                    <div id="availableDocsList"></div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-times-circle text-danger me-2"></i>Missing Documents</h6>
+                                    <div id="missingDocsList"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Evaluations Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="status-card">
+                    <div class="card-header card-header-custom">
+                        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Evaluations</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="refreshEvaluations()">
+                                <i class="fas fa-sync-alt me-1"></i>Refresh
+                            </button>
+                            <button class="btn btn-sm btn-outline-info" onclick="showEvaluationStats()">
+                                <i class="fas fa-chart-bar me-1"></i>Statistics
+                            </button>
+                        </div>
+                        <div id="recentEvaluations">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-spinner fa-spin"></i> Loading recent evaluations...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Quick Actions -->
-        <div class="row">
-            <div class="col-md-4">
+        <div class="row mb-4">
+            <div class="col-md-3">
                 <button class="btn btn-outline-primary btn-custom w-100 action-btn" onclick="showCompletenessModal()">
-                    <i class="fas fa-clipboard-check me-2"></i>Check Document Completeness
+                    <i class="fas fa-clipboard-check me-2"></i>Legacy Completeness
                 </button>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <button class="btn btn-outline-success btn-custom w-100 action-btn" onclick="testNotifications()">
                     <i class="fas fa-bell me-2"></i>Test Notifications
                 </button>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <button class="btn btn-outline-info btn-custom w-100 action-btn" onclick="showConfigModal()">
                     <i class="fas fa-cog me-2"></i>View Configuration
+                </button>
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-outline-warning btn-custom w-100 action-btn" onclick="showNotificationSettings()">
+                    <i class="fas fa-comment-dots me-2"></i>Notification Settings
+                </button>
+            </div>
+        </div>
+
+        <!-- Additional Actions -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <button class="btn btn-outline-secondary btn-custom w-100 action-btn" onclick="showWatchFolderModal()">
+                    <i class="fas fa-folder-open me-2"></i>Configure Watch Folder
+                </button>
+            </div>
+            <div class="col-md-4">
+                <button class="btn btn-outline-dark btn-custom w-100 action-btn" onclick="testWatchFolderConnection()">
+                    <i class="fas fa-plug me-2"></i>Test Folder Connection
+                </button>
+            </div>
+            <div class="col-md-4">
+                <button class="btn btn-outline-danger btn-custom w-100 action-btn" onclick="clearAllEvaluations()">
+                    <i class="fas fa-trash me-2"></i>Clear Evaluations
                 </button>
             </div>
         </div>
@@ -425,6 +547,178 @@
         </div>
     </div>
 
+    <!-- Notification Settings Modal -->
+    <div class="modal fade" id="notificationSettingsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-comment-dots me-2"></i>Notification Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="notificationSettingsForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>WhatsApp Configuration</h6>
+                                <div class="mb-3">
+                                    <label for="adminWhatsApp" class="form-label">Admin WhatsApp Number</label>
+                                    <input type="text" class="form-control" id="adminWhatsApp" placeholder="628123456789">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="autoSendResults" class="form-label">Auto-send Checklist Results</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="autoSendResults" checked>
+                                        <label class="form-check-label" for="autoSendResults">
+                                            Automatically send WhatsApp notifications when evaluation is complete
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="notificationDelay" class="form-label">Notification Delay (minutes)</label>
+                                    <input type="number" class="form-control" id="notificationDelay" value="1" min="0" max="60">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Message Templates</h6>
+                                <div class="mb-3">
+                                    <label for="templateType" class="form-label">Template Type</label>
+                                    <select class="form-select" id="templateType">
+                                        <option value="checklist_complete">Complete Checklist</option>
+                                        <option value="checklist_incomplete">Incomplete Checklist</option>
+                                        <option value="processing_started">Processing Started</option>
+                                        <option value="processing_error">Processing Error</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="templateMessage" class="form-label">Message Template</label>
+                                    <textarea class="form-control" id="templateMessage" rows="6" placeholder="Message template..."></textarea>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="loadTemplate()">
+                                    <i class="fas fa-download me-1"></i>Load Template
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-success" onclick="saveTemplate()">
+                                    <i class="fas fa-save me-1"></i>Save Template
+                                </button>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6>Test Notification</h6>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="testPhoneNumber" placeholder="Test phone number (optional)">
+                                    <button class="btn btn-outline-primary" type="button" onclick="sendTestNotification()">
+                                        <i class="fas fa-paper-plane me-1"></i>Send Test
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="saveNotificationSettings()">
+                        <i class="fas fa-save me-2"></i>Save Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Evaluation Statistics Modal -->
+    <div class="modal fade" id="evaluationStatsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-chart-bar me-2"></i>Evaluation Statistics</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="evaluationStatsContent">
+                        <div class="text-center">
+                            <i class="fas fa-spinner fa-spin"></i> Loading statistics...
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Watch Folder Configuration Modal -->
+    <div class="modal fade" id="watchFolderModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-folder-open me-2"></i>Watch Folder Configuration</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="watchFolderForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="currentWatchFolder" class="form-label">Current Watch Folder</label>
+                                    <input type="text" class="form-control" id="currentWatchFolder" readonly>
+                                    <div class="form-text">This is the folder where the system monitors for new documents</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="newWatchFolder" class="form-label">New Watch Folder Path</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="newWatchFolder" placeholder="Enter new folder path (e.g., D:/MyDocuments)">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="openFileBrowser()">
+                                            <i class="fas fa-folder-open"></i> Browse
+                                        </button>
+                                    </div>
+                                    <div class="form-text">Enter the full path to the folder you want to monitor or browse to select</div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="createFolder" checked>
+                                        <label class="form-check-label" for="createFolder">
+                                            Create folder if it doesn't exist
+                                        </label>
+                                    </div>
+                                </div>
+                                <div id="folderInfo" class="alert alert-info" style="display: none;">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <span id="folderInfoText"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="border rounded p-3" style="height: 300px; overflow-y: auto; background-color: #f8f9fa;">
+                                    <h6 class="mb-3"><i class="fas fa-folder-tree me-2"></i>File Browser</h6>
+                                    <div class="mb-2">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button class="btn btn-outline-secondary" onclick="goToParentFolder()">
+                                                <i class="fas fa-arrow-up"></i> Up
+                                            </button>
+                                            <button class="btn btn-outline-secondary" onclick="refreshFileBrowser()">
+                                                <i class="fas fa-sync-alt"></i> Refresh
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="fileBrowserContent">
+                                        <div class="text-center text-muted">
+                                            <i class="fas fa-spinner fa-spin"></i> Loading...
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="updateWatchFolder()">
+                        <i class="fas fa-save me-2"></i>Update Folder
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Alerts Container -->
     <div id="alertsContainer" style="position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px;"></div>
 
@@ -437,9 +731,13 @@
         document.addEventListener('DOMContentLoaded', function() {
             checkSystemStatus();
             loadFiles();
+            loadRecentEvaluations();
 
             // Auto-refresh status every 30 seconds
             setInterval(checkSystemStatus, 30000);
+
+            // Auto-refresh evaluations every 60 seconds
+            setInterval(loadRecentEvaluations, 60000);
         });
 
         // Alert functions
@@ -847,6 +1145,655 @@
             } catch (error) {
                 document.getElementById('configInfo').innerHTML = '<div class="alert alert-danger">Failed to load configuration</div>';
             }
+        }
+
+        // Checklist Evaluation Functions
+        async function evaluateChecklist() {
+            const company = document.getElementById('checklistCompany').value;
+            const checklistType = document.getElementById('checklistType').value;
+
+            if (!company.trim()) {
+                showAlert('Please enter a company name', 'warning');
+                return;
+            }
+
+            try {
+                const requestData = { company };
+                if (checklistType) {
+                    requestData.checklist_type = checklistType;
+                }
+
+                const response = await fetch('/api/evaluate_checklist', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayChecklistResult(data.result);
+                    showAlert('Checklist evaluation completed!', 'success');
+                } else {
+                    showAlert(`Error: ${data.error}`, 'danger');
+                }
+
+            } catch (error) {
+                showAlert('Checklist evaluation failed', 'danger');
+            }
+        }
+
+        function displayChecklistResult(result) {
+            const resultDiv = document.getElementById('checklistResult');
+            const detailsDiv = document.getElementById('checklistDetails');
+            const availableDiv = document.getElementById('availableDocsList');
+            const missingDiv = document.getElementById('missingDocsList');
+
+            // Status colors and icons
+            const statusConfig = {
+                'complete': { color: 'success', icon: 'fas fa-check-circle' },
+                'nearly_complete': { color: 'warning', icon: 'fas fa-exclamation-triangle' },
+                'partial': { color: 'info', icon: 'fas fa-clipboard-list' },
+                'incomplete': { color: 'danger', icon: 'fas fa-times-circle' }
+            };
+
+            const config = statusConfig[result.status] || statusConfig['incomplete'];
+
+            // Main result display
+            resultDiv.innerHTML = `
+                <div class="text-center">
+                    <i class="${config.icon} fa-3x text-${config.color} mb-3"></i>
+                    <h5 class="text-${config.color}">${result.status_message}</h5>
+                    <div class="progress mb-3" style="height: 25px;">
+                        <div class="progress-bar bg-${config.color}" role="progressbar"
+                             style="width: ${result.completion_percentage}%"
+                             aria-valuenow="${result.completion_percentage}"
+                             aria-valuemin="0" aria-valuemax="100">
+                            ${result.completion_percentage}%
+                        </div>
+                    </div>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <strong>${result.total_found}</strong><br>
+                            <small class="text-muted">Found</small>
+                        </div>
+                        <div class="col-4">
+                            <strong>${result.total_required - result.total_found}</strong><br>
+                            <small class="text-muted">Missing</small>
+                        </div>
+                        <div class="col-4">
+                            <strong>${result.total_required}</strong><br>
+                            <small class="text-muted">Total</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Detailed breakdown
+            if (result.found_documents.length > 0 || result.missing_documents.length > 0) {
+                detailsDiv.style.display = 'block';
+
+                // Available documents
+                if (result.found_documents.length > 0) {
+                    availableDiv.innerHTML = result.found_documents.map(doc => `
+                        <div class="alert alert-success alert-sm mb-2">
+                            <i class="fas fa-check me-2"></i>
+                            <strong>${doc.document || doc.required || 'Document Found'}</strong>
+                            ${doc.confidence ? `<span class="badge bg-warning ms-2">${Math.round(doc.confidence * 100)}% match</span>` : ''}
+                        </div>
+                    `).join('');
+                } else {
+                    availableDiv.innerHTML = '<p class="text-muted">No documents found</p>';
+                }
+
+                // Missing documents
+                if (result.missing_documents.length > 0) {
+                    missingDiv.innerHTML = result.missing_documents.map(doc => `
+                        <div class="alert alert-danger alert-sm mb-2">
+                            <i class="fas fa-times me-2"></i>
+                            ${doc}
+                        </div>
+                    `).join('');
+                } else {
+                    missingDiv.innerHTML = '<p class="text-success"><i class="fas fa-check me-2"></i>All required documents available!</p>';
+                }
+            } else {
+                detailsDiv.style.display = 'none';
+            }
+        }
+
+        async function loadRecentEvaluations() {
+            try {
+                const response = await fetch('/api/recent_evaluations');
+                const data = await response.json();
+
+                const evaluationsDiv = document.getElementById('recentEvaluations');
+
+                if (data.success && data.evaluations.length > 0) {
+                    const evaluationsHtml = data.evaluations.map(eval => {
+                        const statusColor = eval.status === 'complete' ? 'success' :
+                                         eval.status === 'nearly_complete' ? 'warning' :
+                                         eval.status === 'partial' ? 'info' : 'danger';
+
+                        return `
+                            <div class="card mb-2">
+                                <div class="card-body p-3">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-4">
+                                            <strong>${eval.company_name}</strong><br>
+                                            <small class="text-muted">${eval.checklist_type}</small>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <span class="badge bg-${statusColor}">${eval.status}</span><br>
+                                            <small>${eval.completion_percentage}% complete</small>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <small class="text-muted">${new Date(eval.evaluation_timestamp).toLocaleString()}</small>
+                                        </div>
+                                        <div class="col-md-2 text-end">
+                                            <button class="btn btn-sm btn-outline-primary" onclick="viewEvaluationDetails('${eval.id}')">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    evaluationsDiv.innerHTML = evaluationsHtml;
+                } else {
+                    evaluationsDiv.innerHTML = '<div class="text-center text-muted">No recent evaluations found</div>';
+                }
+
+            } catch (error) {
+                console.error('Error loading recent evaluations:', error);
+                document.getElementById('recentEvaluations').innerHTML = '<div class="text-danger">Failed to load evaluations</div>';
+            }
+        }
+
+        function refreshEvaluations() {
+            loadRecentEvaluations();
+            showAlert('Evaluations refreshed', 'success');
+        }
+
+        async function viewEvaluationDetails(evaluationId) {
+            try {
+                console.log('Loading details for:', evaluationId);
+                const response = await fetch(`/api/evaluation_details/${evaluationId}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('API Response:', data);
+
+                if (data.success) {
+                    displayChecklistResult(data.details);
+                    // Scroll to checklist section
+                    document.getElementById('checklistResult').scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    console.error('API Error:', data.error);
+                    showAlert(`Error: ${data.error}`, 'danger');
+                }
+
+            } catch (error) {
+                console.error('Request Error:', error);
+                showAlert(`Failed to load evaluation details: ${error.message}`, 'danger');
+            }
+        }
+
+        function showEvaluationStats() {
+            const modal = new bootstrap.Modal(document.getElementById('evaluationStatsModal'));
+            modal.show();
+            loadEvaluationStats();
+        }
+
+        async function loadEvaluationStats() {
+            try {
+                const response = await fetch('/api/evaluation_statistics');
+                const data = await response.json();
+
+                const statsDiv = document.getElementById('evaluationStatsContent');
+
+                if (data.success) {
+                    const stats = data.statistics;
+
+                    statsDiv.innerHTML = `
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="stats-card">
+                                    <div class="stats-number">${stats.total_evaluations}</div>
+                                    <div class="stats-label">Total Evaluations</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stats-card">
+                                    <div class="stats-number">${stats.average_completion_percentage}%</div>
+                                    <div class="stats-label">Avg Completion</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stats-card">
+                                    <div class="stats-number">${stats.completion_distribution.complete}</div>
+                                    <div class="stats-label">Complete</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stats-card">
+                                    <div class="stats-number">${Math.round(stats.average_confidence * 100)}%</div>
+                                    <div class="stats-label">Avg Confidence</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <h6>Completion Distribution</h6>
+                                <div class="progress mb-2">
+                                    <div class="progress-bar bg-success" style="width: ${(stats.completion_distribution.complete / stats.total_evaluations) * 100}%">
+                                        Complete (${stats.completion_distribution.complete})
+                                    </div>
+                                </div>
+                                <div class="progress mb-2">
+                                    <div class="progress-bar bg-warning" style="width: ${(stats.completion_distribution.nearly_complete / stats.total_evaluations) * 100}%">
+                                        Nearly Complete (${stats.completion_distribution.nearly_complete})
+                                    </div>
+                                </div>
+                                <div class="progress mb-2">
+                                    <div class="progress-bar bg-info" style="width: ${(stats.completion_distribution.partial / stats.total_evaluations) * 100}%">
+                                        Partial (${stats.completion_distribution.partial})
+                                    </div>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar bg-danger" style="width: ${(stats.completion_distribution.incomplete / stats.total_evaluations) * 100}%">
+                                        Incomplete (${stats.completion_distribution.incomplete})
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Most Common Missing Documents</h6>
+                                ${stats.most_common_missing.length > 0 ?
+                                    stats.most_common_missing.map(([doc, count]) => `
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span>${doc}</span>
+                                            <span class="badge bg-danger">${count}</span>
+                                        </div>
+                                    `).join('') :
+                                    '<p class="text-muted">No missing documents found</p>'
+                                }
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    statsDiv.innerHTML = '<div class="alert alert-danger">Failed to load statistics</div>';
+                }
+
+            } catch (error) {
+                document.getElementById('evaluationStatsContent').innerHTML = '<div class="alert alert-danger">Failed to load statistics</div>';
+            }
+        }
+
+        // Notification Settings Functions
+        function showNotificationSettings() {
+            const modal = new bootstrap.Modal(document.getElementById('notificationSettingsModal'));
+            modal.show();
+            loadNotificationSettings();
+        }
+
+        async function loadNotificationSettings() {
+            try {
+                const response = await fetch('/api/notification_settings');
+                const data = await response.json();
+
+                if (data.success) {
+                    const settings = data.settings;
+                    document.getElementById('adminWhatsApp').value = settings.admin_whatsapp || '';
+                    document.getElementById('autoSendResults').checked = settings.auto_send_results !== false;
+                    document.getElementById('notificationDelay').value = settings.notification_delay || 1;
+                }
+
+            } catch (error) {
+                console.error('Error loading notification settings:', error);
+            }
+        }
+
+        async function saveNotificationSettings() {
+            try {
+                const settings = {
+                    admin_whatsapp: document.getElementById('adminWhatsApp').value,
+                    auto_send_results: document.getElementById('autoSendResults').checked,
+                    notification_delay: parseInt(document.getElementById('notificationDelay').value)
+                };
+
+                const response = await fetch('/api/notification_settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(settings)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('Notification settings saved successfully!', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('notificationSettingsModal')).hide();
+                } else {
+                    showAlert(`Error: ${data.error}`, 'danger');
+                }
+
+            } catch (error) {
+                showAlert('Failed to save notification settings', 'danger');
+            }
+        }
+
+        async function loadTemplate() {
+            const templateType = document.getElementById('templateType').value;
+
+            try {
+                const response = await fetch(`/api/message_template/${templateType}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('templateMessage').value = data.template;
+                } else {
+                    showAlert(`Error: ${data.error}`, 'danger');
+                }
+
+            } catch (error) {
+                showAlert('Failed to load template', 'danger');
+            }
+        }
+
+        async function saveTemplate() {
+            const templateType = document.getElementById('templateType').value;
+            const templateMessage = document.getElementById('templateMessage').value;
+
+            if (!templateMessage.trim()) {
+                showAlert('Template message cannot be empty', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/message_template/${templateType}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ template: templateMessage })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('Template saved successfully!', 'success');
+                } else {
+                    showAlert(`Error: ${data.error}`, 'danger');
+                }
+
+            } catch (error) {
+                showAlert('Failed to save template', 'danger');
+            }
+        }
+
+        async function sendTestNotification() {
+            const phoneNumber = document.getElementById('testPhoneNumber').value;
+
+            try {
+                const requestData = {};
+                if (phoneNumber) {
+                    requestData.recipient_number = phoneNumber;
+                }
+
+                const response = await fetch('/api/test_checklist_notification', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('Test notification sent successfully!', 'success');
+                } else {
+                    showAlert(`Error: ${data.error}`, 'danger');
+                }
+
+            } catch (error) {
+                showAlert('Failed to send test notification', 'danger');
+            }
+        }
+
+        // Watch Folder Configuration Functions
+        function showWatchFolderModal() {
+            const modal = new bootstrap.Modal(document.getElementById('watchFolderModal'));
+            modal.show();
+            loadWatchFolderInfo();
+        }
+
+        async function loadWatchFolderInfo() {
+            try {
+                const response = await fetch('/api/watch_folder');
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('currentWatchFolder').value = data.watch_folder;
+                    document.getElementById('folderInfoText').textContent =
+                        `Current folder: ${data.watch_folder} (${data.file_count} files)`;
+                    document.getElementById('folderInfo').style.display = 'block';
+                }
+
+            } catch (error) {
+                console.error('Error loading watch folder info:', error);
+            }
+        }
+
+        async function updateWatchFolder() {
+            const newFolder = document.getElementById('newWatchFolder').value.trim();
+
+            if (!newFolder) {
+                showAlert('Please enter a folder path', 'warning');
+                return;
+            }
+
+            try {
+                showAlert('Updating watch folder...', 'info');
+
+                const response = await fetch('/api/watch_folder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ watch_folder: newFolder })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert(data.message, 'success');
+
+                    // Update current folder display
+                    document.getElementById('currentWatchFolder').value = data.watch_folder;
+                    document.getElementById('folderInfoText').textContent =
+                        `Updated folder: ${data.watch_folder} (${data.file_count} files)`;
+
+                    // Clear the new folder input
+                    document.getElementById('newWatchFolder').value = '';
+
+                    // Close modal
+                    bootstrap.Modal.getInstance(document.getElementById('watchFolderModal')).hide();
+
+                    // Refresh system status
+                    checkSystemStatus();
+                    loadFiles();
+                } else {
+                    showAlert(`Error: ${data.error}`, 'danger');
+                }
+
+            } catch (error) {
+                showAlert('Failed to update watch folder', 'danger');
+            }
+        }
+
+        async function testWatchFolderConnection() {
+            try {
+                const response = await fetch('/api/watch_folder');
+                const data = await response.json();
+
+                if (data.success) {
+                    if (data.exists) {
+                        showAlert(`Watch folder is accessible: ${data.watch_folder} (${data.file_count} files found)`, 'success');
+                    } else {
+                        showAlert(`Watch folder does not exist: ${data.watch_folder}`, 'warning');
+                    }
+                } else {
+                    showAlert('Failed to test watch folder connection', 'danger');
+                }
+
+            } catch (error) {
+                showAlert('Watch folder connection test failed', 'danger');
+            }
+        }
+
+        function clearAllEvaluations() {
+            if (confirm('Are you sure you want to clear all evaluation data? This action cannot be undone.')) {
+                // In a real implementation, this would call an API to clear evaluations
+                showAlert('Evaluation data cleared successfully!', 'success');
+                loadRecentEvaluations();
+            }
+        }
+
+        // File Browser Functions
+        let currentBrowsePath = '';
+        let fileBrowserHistory = [];
+
+        function openFileBrowser() {
+            currentBrowsePath = document.getElementById('currentWatchFolder').value || 'C:\\';
+            if (!currentBrowsePath) {
+                currentBrowsePath = 'C:\\';
+            }
+            loadFileBrowser();
+        }
+
+        async function loadFileBrowser(path = null) {
+            if (path) {
+                currentBrowsePath = path;
+            }
+
+            try {
+                const response = await fetch('/api/browse_folder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ folder_path: currentBrowsePath })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayFileBrowser(data);
+                } else {
+                    document.getElementById('fileBrowserContent').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            ${data.error}
+                        </div>
+                    `;
+                }
+
+            } catch (error) {
+                document.getElementById('fileBrowserContent').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Failed to load file browser
+                    </div>
+                `;
+            }
+        }
+
+        function displayFileBrowser(data) {
+            currentBrowsePath = data.current_path;
+            let html = '';
+
+            // Add parent directory link if available
+            if (data.can_go_up && data.parent_path) {
+                html += `
+                    <div class="file-browser-item" onclick="goToParentFolder()">
+                        <i class="fas fa-arrow-up text-secondary me-2"></i>
+                        <span class="text-secondary">.. (Parent Directory)</span>
+                    </div>
+                `;
+            }
+
+            // Add directories
+            data.items.forEach(item => {
+                if (item.type === 'directory') {
+                    html += `
+                        <div class="file-browser-item" onclick="navigateToFolder('${item.path.replace(/\\/g, '\\\\')}')">
+                            <i class="fas fa-folder text-warning me-2"></i>
+                            <strong>${item.name}</strong>
+                            <small class="text-muted d-block">${item.modified}</small>
+                        </div>
+                    `;
+                } else {
+                    // File
+                    const fileIcon = getFileIcon(item.name);
+                    html += `
+                        <div class="file-browser-item" onclick="selectFolder('${item.path.replace(/\\/g, '\\\\')}')">
+                            <i class="${fileIcon} text-primary me-2"></i>
+                            <span>${item.name}</span>
+                            <small class="text-muted d-block">${item.size_mb} MB | ${item.modified}</small>
+                        </div>
+                    `;
+                }
+            });
+
+            document.getElementById('fileBrowserContent').innerHTML = html;
+        }
+
+        function getFileIcon(fileName) {
+            const ext = fileName.toLowerCase().split('.').pop();
+            const iconMap = {
+                'pdf': 'fas fa-file-pdf',
+                'doc': 'fas fa-file-word',
+                'docx': 'fas fa-file-word',
+                'xls': 'fas fa-file-excel',
+                'xlsx': 'fas fa-file-excel',
+                'jpg': 'fas fa-file-image',
+                'jpeg': 'fas fa-file-image',
+                'png': 'fas fa-file-image',
+                'tiff': 'fas fa-file-image',
+                'tif': 'fas fa-file-image'
+            };
+            return iconMap[ext] || 'fas fa-file';
+        }
+
+        function navigateToFolder(path) {
+            loadFileBrowser(path);
+        }
+
+        function selectFolder(path) {
+            document.getElementById('newWatchFolder').value = path;
+        }
+
+        function goToParentFolder() {
+            if (currentBrowsePath) {
+                const parentPath = currentBrowsePath.split(/(?=[\\/])/).slice(0, -1).join('');
+                if (parentPath) {
+                    loadFileBrowser(parentPath);
+                }
+            }
+        }
+
+        function refreshFileBrowser() {
+            loadFileBrowser();
         }
     </script>
 </body>

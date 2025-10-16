@@ -6,3 +6,19 @@ requests
 watchdog
 ollama
 python-dotenv
+# OCR and Document Processing
+pytesseract
+Pillow
+opencv-python
+google-cloud-vision
+pymupdf
+# Enhanced AI and NLP
+scikit-learn
+nltk
+spacy
+# File processing enhancements
+python-magic
+# Additional dependencies
+flask-cors
+fuzzywuzzy
+python-levenshtein
