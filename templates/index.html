@@ -1240,7 +1240,7 @@
                     availableDiv.innerHTML = result.found_documents.map(doc => `
                         <div class="alert alert-success alert-sm mb-2">
                             <i class="fas fa-check me-2"></i>
-                            <strong>${doc.document || doc.required || 'Document Found'}</strong>
+                            <strong>${doc.required || doc.document || 'Document Found'}</strong>
                             ${doc.confidence ? `<span class="badge bg-warning ms-2">${Math.round(doc.confidence * 100)}% match</span>` : ''}
                         </div>
                     `).join('');

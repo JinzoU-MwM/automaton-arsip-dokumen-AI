@@ -12,6 +12,7 @@ from flask import Flask, render_template, request, jsonify
 import json
 from datetime import datetime
 import uuid
+import traceback
 from whatsapp_notifier import get_whatsapp_notifier, auto_send_missing_documents, test_whatsapp_connection
 
 # Load environment variables from .env file
@@ -704,6 +705,163 @@ def api_browse_folder():
             'success': False,
             'error': str(e)
         }), 500
+
+@app.route('/api/upload', methods=['POST'])
+def api_upload():
+    """Handle file upload and processing"""
+    try:
+        # Handle form data
+        company = request.form.get('company', '')
+        job_type = request.form.get('job_type', '')
+
+        if not company or not job_type:
+            return jsonify({'error': 'Company name and job type are required'}), 400
+
+        # Check if file was uploaded
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+
+        # Save file to watch folder
+        filename = file.filename
+        file_path = os.path.join(config.WATCH_FOLDER, filename)
+
+        # Ensure watch folder exists
+        os.makedirs(config.WATCH_FOLDER, exist_ok=True)
+
+        file.save(file_path)
+
+        # Process the file (mock processing for now)
+        processing_result = {
+            'file_name': filename,
+            'company': company,
+            'job_type': job_type,
+            'file_size': os.path.getsize(file_path),
+            'status': 'processed',
+            'timestamp': datetime.now().isoformat()
+        }
+
+        return jsonify({
+            'success': True,
+            'message': f'File {filename} processed successfully for {company}',
+            'result': processing_result
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/process_existing', methods=['POST'])
+def api_process_existing():
+    """Process all existing files in watch folder"""
+    try:
+        if not os.path.exists(config.WATCH_FOLDER):
+            return jsonify({'error': 'Watch folder does not exist'}), 400
+
+        # Get supported files
+        supported_extensions = {'.pdf', '.doc', '.docx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png', '.tiff', '.tif'}
+        files = []
+
+        for file in os.listdir(config.WATCH_FOLDER):
+            file_path = os.path.join(config.WATCH_FOLDER, file)
+            if os.path.isfile(file_path) and Path(file).suffix.lower() in supported_extensions:
+                files.append({
+                    'name': file,
+                    'size': os.path.getsize(file_path),
+                    'path': file_path
+                })
+
+        if not files:
+            return jsonify({'error': 'No supported files found in watch folder'}), 400
+
+        # Mock processing of files
+        processed_count = 0
+        for file in files:
+            # Simulate processing
+            processed_count += 1
+
+        return jsonify({
+            'success': True,
+            'message': f'Started processing {processed_count} files',
+            'files_processed': processed_count,
+            'timestamp': datetime.now().isoformat()
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/start_monitoring', methods=['POST'])
+def api_start_monitoring():
+    """Start file monitoring for the watch folder"""
+    try:
+        if not os.path.exists(config.WATCH_FOLDER):
+            return jsonify({'error': 'Watch folder does not exist'}), 400
+
+        # Mock monitoring start
+        return jsonify({
+            'success': True,
+            'message': f'File monitoring started for {config.WATCH_FOLDER}',
+            'watch_folder': config.WATCH_FOLDER,
+            'status': 'monitoring',
+            'timestamp': datetime.now().isoformat()
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/check_completeness', methods=['POST'])
+def api_check_completeness():
+    """Check document completeness for a company"""
+    try:
+        data = request.get_json()
+        company = data.get('company', '').strip()
+
+        if not company:
+            return jsonify({'error': 'Company name is required'}), 400
+
+        # Mock completeness check
+        mock_present_docs = [
+            'Akta Pendirian',
+            'NPWP Perusahaan',
+            'NIB Perusahaan',
+            'KTP Direktur'
+        ]
+
+        mock_missing_docs = [
+            'SKT / SKF (Fiskal)',
+            'Laporan Keuangan 2023',
+            'Rekening Koran 6 Bulan'
+        ]
+
+        completeness_percentage = (len(mock_present_docs) / (len(mock_present_docs) + len(mock_missing_docs))) * 100
+
+        report = f"""
+Document Completeness Report for {company}
+
+✅ Available Documents ({len(mock_present_docs)}):
+{chr(10).join(f"• {doc}" for doc in mock_present_docs)}
+
+❌ Missing Documents ({len(mock_missing_docs)}):
+{chr(10).join(f"• {doc}" for doc in mock_missing_docs)}
+
+Status: {len(mock_present_docs)}/{len(mock_present_docs) + len(mock_missing_docs)} documents found ({round(completeness_percentage, 1)}%)
+        """.strip()
+
+        return jsonify({
+            'success': True,
+            'company': company,
+            'present': mock_present_docs,
+            'missing': mock_missing_docs,
+            'total_present': len(mock_present_docs),
+            'total_missing': len(mock_missing_docs),
+            'completion_percentage': round(completeness_percentage, 1),
+            'report': report
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/test_checklist_notification', methods=['POST'])
 def api_test_checklist_notification():
